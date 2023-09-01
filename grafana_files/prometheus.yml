@@ -1,0 +1,49 @@
+# config file for prometheus
+
+# global config
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - follow_redirects: true
+      enable_http2: true
+      scheme: http
+      timeout: 10s
+      api_version: v2
+      static_configs:
+        - targets: []
+
+scrape_configs:
+  - job_name: prometheus
+    honor_timestamps: true
+    scrape_interval: 15m
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: http
+    follow_redirects: true
+    # enable_http2: true
+    static_configs:
+      - targets:
+          - localhost:9090
+
+  # - job_name: fastapi
+  #   scrape_interval: 10s
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ["functions:8000"]
+
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+rule_files:
+  - "./rule_files/postgres_exporter_alerts.yml"
+  - "./rule_files/node_alerts.yml"
+  - "./rule_files/node_ruless.yml"
