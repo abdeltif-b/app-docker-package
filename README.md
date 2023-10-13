@@ -1,4 +1,5 @@
 # app-docker-package
+![app-docker-compose](https://github.com/abdeltif-b/app-docker-package/assets/60190704/84d6410f-67f9-43cc-8d61-45fb4625c16c)
 
 This repository hosts the Docker Compose configuration for a comprehensive application featuring multiple services designed to serve diverse functionalities. It primarily serves as a template and is not meant for external user deployment. The core services (t3 and functions) are linked to private GitHub repositories.
 
