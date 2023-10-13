@@ -1,10 +1,11 @@
 version: "3.9"
 name: apps
-# change ports 5433:5432, 80:3000, http://functions:8000
 services:
+  #---------------------------------------
+  # The main app services
+  #---------------------------------------
   db:
     image: postgres:15.3
-    # container_name: db
     restart: unless-stopped
     ports:
       - 5432:5432
@@ -14,53 +15,40 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:22.0.1
-    # container_name: keycloak
     restart: unless-stopped
     ports:
       - 8080:8080
     env_file: ./env/keycloak.env
     volumes:
       - /data/volumes/keycloak:/opt/jboss/keycloak/standalone/data
-      # - ./keycloak-bg.png:/opt/jboss/keycloak/themes/keycloak/login/resources/img/keycloak-bg.png
-
-      # - C:\develop\certificates\keycloak.codewrecks.com\cert.pem:/etc/x509/https/tls.crt
-      # - C:\develop\certificates\keycloak.codewrecks.com\privkey.pem:/etc/x509/https/tls.key
     command: ["start-dev"]
 
   t3:
     platform: "linux/amd64"
     build:
-      # context: ./planiverse-t3
-      context: https://github_pat_<KEY>@github.com/abdeltif-b/planiverse-t3.git#madec-staging
+      context: https://github_pat_<KEY>@github.com/abdeltif-b/app-t3.git#<BRANCHE_NAME>
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_SYNCFUSION_LICENSE: ORg4AjUWIQA/Gnt2V1hhQlJCfV5AQmBIYVp/TGpJfl96cVxMZVVBJAtUQF1hSn5UdkBjX31acH1UQmVc
+        NEXT_PUBLIC_SYNCFUSION_LICENSE: <ANY_COMMUNITY_LICENSE>
         NEXT_PUBLIC_BATCH_FUNCTION: madecDeploiementBatch
         NEXT_PUBLIC_ACCESS_KEY_ID: <KEY_ID>
         NEXT_PUBLIC_SECRET_KEY: <SECRET_KEY>
-        NEXT_PUBLIC_DATA_UPLOAD_BUCKET_NAME: madec-staging
+        NEXT_PUBLIC_DATA_UPLOAD_BUCKET_NAME: <BRANCHE_NAME>
         NEXT_PUBLIC_ENVIRONMENT: dev
-        # NEXT_PUBLIC_FUNCTION_API_URL: http://15.237.21.246:8001
-        # NEXT_PUBLIC_FUNCTION_API_URL: http://functions:8000
-        NEXT_PUBLIC_CLIENT: madec
-    # working_dir: /app
+        NEXT_PUBLIC_CLIENT: <NEXT_PUBLIC_CLIENT>
     ports:
-      - 80:3000
-    # image: planiverse
+      - 80:80
     restart: unless-stopped
     env_file: ./env/t3.env
     volumes:
       - /data/uploads/Fichiers importés:/data/uploads/Fichiers importés
-    # networks:
-    #   - net
     depends_on:
       - db
       - keycloak
 
   functions:
     build:
-      # context: ./planiverse-functions
-      context: https://github_pat_<KEY>@github.com/abdeltif-b/planiverse-functions.git#madec
+      context: https://github_pat_<KEY>@github.com/abdeltif-b/app-functions.git#<BRANCHE_NAME>
       dockerfile: Dockerfile
     volumes:
       - /data/uploads/Fichiers importés:/data/uploads/Fichiers importés
@@ -68,25 +56,16 @@ services:
       - 8000:8000
     restart: unless-stopped
     env_file: ./env/functions.env
-    # image: planiverse-functions
-    # networks:
-    #   - net
     depends_on:
       - db
       - t3
 
   pgbackups:
     image: prodrigestivill/postgres-backup-local
-    # container_name: db-backup
     restart: unless-stopped
-    # user: postgres:postgres # Optional: see below
-    # ports:
-    #   - 8002:8080
     env_file: ./env/pgbackups.env
     volumes:
       - /data/volumes/pgbackups:/backups
-    # links:
-    #   - db
     depends_on:
       - db
 
@@ -95,7 +74,6 @@ services:
   #---------------------------------------
   grafana:
     image: grafana/grafana
-    # container_name: grafana
     restart: unless-stopped
     ports:
       - 3001:3000
@@ -107,13 +85,11 @@ services:
     volumes:
       # automatically configure the loki datasource
       - ./grafana_files/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
-      # - ./grafana:/etc/grafana/provisioning/datasources
       # directory must be created first, with uid:gid 472:472
       - /data/volumes/grafana:/var/lib/grafana
 
   loki:
     image: grafana/loki:2.6.1
-    # container_name: loki
     ports:
       - 3100:3100
     user: "0"
@@ -124,7 +100,6 @@ services:
   # https://cylab.be/blog/241/use-loki-to-monitor-the-logs-of-your-docker-compose-application
   promtail:
     image: grafana/promtail:2.6.1
-    # container_name: promtail
     restart: unless-stopped
     volumes:
       # custom config will read logs from the containers of this project
@@ -135,7 +110,6 @@ services:
 
   prometheus:
     image: prom/prometheus
-    # container_name: prometheus
     restart: unless-stopped
     ports:
       - 9090:9090
@@ -153,7 +127,6 @@ services:
 
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter
-    # container_name: postgres-exporter
     restart: unless-stopped
     environment:
       DATA_SOURCE_NAME: "postgresql://user:pass@db:5432/db_name?sslmode=disable"
@@ -162,60 +135,11 @@ services:
 
   node-exporter:
     image: quay.io/prometheus/node-exporter:latest
-    # container_name: node-exporter
     restart: unless-stopped
     command:
       - "--path.rootfs=/host"
-    # network_mode: host
-    # pid: host
     ports:
       - "9100:9100"
 
     volumes:
       - "/:/host:ro,rslave"
-
-  # node-exporter:
-  #   image: prom/node-exporter:latest
-  #   container_name: node-exporter
-  #   restart: unless-stopped
-  #   volumes:
-  #     # :ro or read-only mode
-  #     - /proc:/host/proc:ro
-  #     - /sys:/host/sys:ro
-  #     - /:/rootfs:ro
-  #   command:
-  #     - "--path.procfs=/host/proc"
-  #     - "--path.rootfs=/rootfs"
-  #     - "--path.sysfs=/host/sys"
-  #     - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-  #   expose:
-  #     - 9100
-  #   # networks:
-  #   #   - monitoring
-# networks:
-#   default:
-#     name: hello_fastapi
-# #   net:
-# #     driver: bridge
-
-# volumes:
-# prometheus-data:
-#   driver: local
-#   driver_opts:
-#     o: bind
-#     type: none
-#     device: ./prometheus-data
-# grafana-data:
-#   driver: local
-#   driver_opts:
-#     o: bind
-#     type: none
-#     device: ./grafana-data
-# prometheus_data:
-# postgres-data:
-
-# deploy:
-#   resources:
-#     limits:
-#       memory: "6G"
-#       cpus: "10"
